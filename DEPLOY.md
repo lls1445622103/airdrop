@@ -63,11 +63,6 @@ vercel --prod
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "app.js": {
-      "maxDuration": 10
-    }
   }
 }
 ```
