@@ -1,0 +1,31 @@
+{
+  "name": "airdrop",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "dev": "node app.js",
+    "start": "node app.js",
+    "build": "echo 'No build step required'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lls1445622103/airdrop.git"
+  },
+  "keywords": ["koa", "api", "token", "auth"],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lls1445622103/airdrop/issues"
+  },
+  "homepage": "https://github.com/lls1445622103/airdrop#readme",
+  "description": "Airdrop API server with Koa.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@koa/router": "^14.0.0",
+    "koa": "^3.0.1",
+    "koa-bodyparser": "^4.4.1",
+    "uuid": "^11.1.0"
+  }
+}
