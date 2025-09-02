@@ -75,24 +75,52 @@ vercel --prod
 
 ## 📋 部署后测试
 
-部署完成后，Vercel 会提供一个 URL，例如：
-`https://your-project-name.vercel.app`
+你的应用已成功部署到：
+**`https://airdrop-blush-five.vercel.app`**
 
-测试 API 端点：
+### 测试 API 端点：
 
+#### 1. 获取所有 Token
 ```bash
-# 获取所有 token
-curl https://your-project-name.vercel.app/auth
+curl https://airdrop-blush-five.vercel.app/auth
+```
 
-# 创建新 token
-curl -X POST https://your-project-name.vercel.app/auth \
+#### 2. 创建新 Token
+```bash
+curl -X POST https://airdrop-blush-five.vercel.app/auth \
   -H "Content-Type: application/json" \
   -d '{"acounts": ["test_user"]}'
+```
 
-# 添加账户到 token
-curl -X POST https://your-project-name.vercel.app/auth/TOKEN_HERE/account \
+#### 3. 添加账户到 Token
+```bash
+# 先获取一个 token，然后使用它
+curl -X POST https://airdrop-blush-five.vercel.app/auth/sk-11478501-b0c8-4c0e-8e0c-f176c7778b70/account \
   -H "Content-Type: application/json" \
   -d '{"account": "new_account"}'
+```
+
+### 完整测试流程示例：
+
+```bash
+# 1. 查看现有 tokens
+curl https://airdrop-blush-five.vercel.app/auth | jq .
+
+# 2. 创建新 token
+TOKEN_RESPONSE=$(curl -s -X POST https://airdrop-blush-five.vercel.app/auth \
+  -H "Content-Type: application/json" \
+  -d '{"acounts": ["demo_user"]}')
+
+# 3. 提取 token
+TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.data.token')
+
+# 4. 向 token 添加账户
+curl -X POST https://airdrop-blush-five.vercel.app/auth/$TOKEN/account \
+  -H "Content-Type: application/json" \
+  -d '{"account": "additional_user"}' | jq .
+
+# 5. 验证最终结果
+curl https://airdrop-blush-five.vercel.app/auth | jq .
 ```
 
 ## ⚠️ 重要注意事项

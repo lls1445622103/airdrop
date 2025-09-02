@@ -12,28 +12,77 @@
 
 ## API 端点
 
+**基础 URL**: `https://airdrop-blush-five.vercel.app`
+
 ### 1. 获取所有 Token
-```bash
-GET /auth
+```http
+GET https://airdrop-blush-five.vercel.app/auth
+```
+
+**响应示例**:
+```json
+[
+  {
+    "token": "sk-dac23f3b-9792-4736-a784-e736656270b6",
+    "created_at": 1756825498,
+    "updated_at": 1756825498,
+    "acounts": ["user1", "user2"]
+  },
+  {
+    "token": "sk-61db4ac2-5f33-4167-b64f-86b283d6f929",
+    "created_at": 1756825515,
+    "updated_at": 1756825515,
+    "acounts": []
+  }
+]
 ```
 
 ### 2. 创建新 Token
-```bash
-POST /auth
+```http
+POST https://airdrop-blush-five.vercel.app/auth
 Content-Type: application/json
 
 {
-  "acounts": ["user1", "user2"]  # 可选
+  "acounts": ["user1", "user2"]
+}
+```
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "message": "Token created successfully",
+  "data": {
+    "token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "created_at": 1756828261,
+    "updated_at": 1756828261,
+    "acounts": ["user1", "user2"]
+  },
+  "total": 3
 }
 ```
 
 ### 3. 向 Token 添加账户
-```bash
-POST /auth/:token/account
+```http
+POST https://airdrop-blush-five.vercel.app/auth/sk-11478501-b0c8-4c0e-8e0c-f176c7778b70/account
 Content-Type: application/json
 
 {
   "account": "new_user"
+}
+```
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "message": "Account added successfully",
+  "data": {
+    "token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "account_added": "new_user",
+    "acounts": ["user1", "user2", "new_user"],
+    "updated_at": 1756828269
+  }
 }
 ```
 
