@@ -5,6 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
+// 常量定义
+const MAX_ACCOUNTS_PER_TOKEN = 100;
+
 const app = new Koa();
 const router = new Router();
 
@@ -184,6 +187,18 @@ router.post('/auth/:token/account', async (ctx) => {
       return;
     }
     
+    // 检查账户数量限制
+    const currentAccountCount = tokenData.acounts ? tokenData.acounts.length : 0;
+    if (currentAccountCount >= MAX_ACCOUNTS_PER_TOKEN) {
+      ctx.status = 422;
+      ctx.body = {
+        success: false,
+        error: 'Unprocessable Entity',
+        message: `Maximum number of accounts (${MAX_ACCOUNTS_PER_TOKEN}) reached for this token`
+      };
+      return;
+    }
+    
     // 添加 account 到数组
     if (!tokenData.acounts) {
       tokenData.acounts = [];
@@ -215,6 +230,214 @@ router.post('/auth/:token/account', async (ctx) => {
     
   } catch (error) {
     console.error('Error adding account:', error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    };
+  }
+});
+
+// POST /auth/:token/verify - 验证指定 token 中是否存在某个账户
+router.post('/auth/:token/verify', async (ctx) => {
+  try {
+    const { token } = ctx.params;
+    const { account } = ctx.request.body;
+    
+    // 验证请求参数
+    if (!account || typeof account !== 'string' || account.trim() === '') {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        error: 'Bad Request',
+        message: 'Account parameter is required and must be a non-empty string'
+      };
+      return;
+    }
+    
+    // 读取现有数据
+    let existingDataArray = readData();
+    if (!Array.isArray(existingDataArray)) {
+      existingDataArray = [];
+    }
+    
+    // 查找指定的 token
+    const tokenData = existingDataArray.find(item => item.token === token);
+    if (!tokenData) {
+      ctx.status = 404;
+      ctx.body = {
+        success: false,
+        error: 'Not Found',
+        message: 'Token not found',
+        exists: false
+      };
+      return;
+    }
+    
+    // 检查 account 是否存在
+    const accountExists = tokenData.acounts && tokenData.acounts.includes(account.trim());
+    
+    // 返回验证结果
+    ctx.status = 200;
+    ctx.type = 'application/json';
+    ctx.body = {
+      success: true,
+      message: 'Verification completed',
+      data: {
+        token: tokenData.token,
+        account: account.trim(),
+        exists: accountExists,
+        total_accounts: tokenData.acounts ? tokenData.acounts.length : 0
+      }
+    };
+    
+  } catch (error) {
+    console.error('Error verifying account:', error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      error: 'Internal server error',
+      message: error.message,
+      exists: false
+    };
+  }
+});
+
+// DELETE /auth/:token - 删除指定的 token
+router.delete('/auth/:token', async (ctx) => {
+  try {
+    const { token } = ctx.params;
+    
+    // 读取现有数据
+    let existingDataArray = readData();
+    if (!Array.isArray(existingDataArray)) {
+      existingDataArray = [];
+    }
+    
+    // 查找指定的 token
+    const tokenIndex = existingDataArray.findIndex(item => item.token === token);
+    if (tokenIndex === -1) {
+      ctx.status = 404;
+      ctx.body = {
+        success: false,
+        error: 'Not Found',
+        message: 'Token not found'
+      };
+      return;
+    }
+    
+    // 获取要删除的 token 数据
+    const deletedTokenData = existingDataArray[tokenIndex];
+    
+    // 从数组中删除
+    existingDataArray.splice(tokenIndex, 1);
+    
+    // 写入数据
+    writeData(existingDataArray);
+    
+    // 返回成功响应
+    ctx.status = 200;
+    ctx.type = 'application/json';
+    ctx.body = {
+      success: true,
+      message: 'Token deleted successfully',
+      data: {
+        deleted_token: deletedTokenData.token,
+        deleted_accounts: deletedTokenData.acounts || [],
+        remaining_tokens: existingDataArray.length
+      }
+    };
+    
+  } catch (error) {
+    console.error('Error deleting token:', error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    };
+  }
+});
+
+// DELETE /auth/:token/account - 删除指定 token 中的特定账户
+router.delete('/auth/:token/account', async (ctx) => {
+  try {
+    const { token } = ctx.params;
+    const { account } = ctx.request.body;
+    
+    // 验证请求参数
+    if (!account || typeof account !== 'string' || account.trim() === '') {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        error: 'Bad Request',
+        message: 'Account parameter is required and must be a non-empty string'
+      };
+      return;
+    }
+    
+    // 读取现有数据
+    let existingDataArray = readData();
+    if (!Array.isArray(existingDataArray)) {
+      existingDataArray = [];
+    }
+    
+    // 查找指定的 token
+    const tokenIndex = existingDataArray.findIndex(item => item.token === token);
+    if (tokenIndex === -1) {
+      ctx.status = 404;
+      ctx.body = {
+        success: false,
+        error: 'Not Found',
+        message: 'Token not found'
+      };
+      return;
+    }
+    
+    const tokenData = existingDataArray[tokenIndex];
+    
+    // 检查 account 是否存在
+    if (!tokenData.acounts || !tokenData.acounts.includes(account.trim())) {
+      ctx.status = 404;
+      ctx.body = {
+        success: false,
+        error: 'Not Found',
+        message: 'Account not found in the token'
+      };
+      return;
+    }
+    
+    // 从数组中删除账户
+    const accountIndex = tokenData.acounts.indexOf(account.trim());
+    tokenData.acounts.splice(accountIndex, 1);
+    
+    // 更新时间戳
+    tokenData.updated_at = Math.floor(Date.now() / 1000);
+    
+    // 更新数组中的数据
+    existingDataArray[tokenIndex] = tokenData;
+    
+    // 写入数据
+    writeData(existingDataArray);
+    
+    // 返回成功响应
+    ctx.status = 200;
+    ctx.type = 'application/json';
+    ctx.body = {
+      success: true,
+      message: 'Account deleted successfully',
+      data: {
+        token: tokenData.token,
+        deleted_account: account.trim(),
+        remaining_acounts: tokenData.acounts,
+        total_accounts: tokenData.acounts.length,
+        updated_at: tokenData.updated_at
+      }
+    };
+    
+  } catch (error) {
+    console.error('Error deleting account:', error);
     ctx.status = 500;
     ctx.body = {
       success: false,

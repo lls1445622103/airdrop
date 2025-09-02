@@ -9,6 +9,9 @@
 | GET | `/auth` | 获取所有 Token |
 | POST | `/auth` | 创建新 Token |
 | POST | `/auth/:token/account` | 向 Token 添加账户 |
+| POST | `/auth/:token/verify` | 验证账户是否存在 |
+| DELETE | `/auth/:token` | 删除指定 Token |
+| DELETE | `/auth/:token/account` | 删除指定账户 |
 
 ---
 
@@ -123,6 +126,133 @@ Content-Type: application/json
 
 ---
 
+### 4. 验证账户是否存在
+
+**端点**: `POST /auth/:token/verify`
+
+#### 路径参数
+- `token`: 要验证的目标 Token
+
+#### 请求示例
+```http
+POST https://airdrop-blush-five.vercel.app/auth/sk-11478501-b0c8-4c0e-8e0c-f176c7778b70/verify
+Content-Type: application/json
+
+{
+  "account": "user1"
+}
+```
+
+#### 响应示例
+
+**账户存在时**:
+```json
+{
+  "success": true,
+  "message": "Verification completed",
+  "data": {
+    "token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "account": "user1",
+    "exists": true,
+    "total_accounts": 3
+  }
+}
+```
+
+**账户不存在时**:
+```json
+{
+  "success": true,
+  "message": "Verification completed",
+  "data": {
+    "token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "account": "nonexistent_user",
+    "exists": false,
+    "total_accounts": 3
+  }
+}
+```
+
+#### 状态码
+- `200 OK`: 验证完成（无论账户是否存在）
+- `400 Bad Request`: 请求参数无效
+- `404 Not Found`: Token 不存在
+- `500 Internal Server Error`: 服务器内部错误
+
+---
+
+### 5. 删除 Token
+
+**端点**: `DELETE /auth/:token`
+
+#### 路径参数
+- `token`: 要删除的目标 Token
+
+#### 请求示例
+```http
+DELETE https://airdrop-blush-five.vercel.app/auth/sk-11478501-b0c8-4c0e-8e0c-f176c7778b70
+```
+
+#### 响应示例
+```json
+{
+  "success": true,
+  "message": "Token deleted successfully",
+  "data": {
+    "deleted_token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "deleted_accounts": ["user1", "user2", "new_user"],
+    "remaining_tokens": 2
+  }
+}
+```
+
+#### 状态码
+- `200 OK`: 成功删除 Token
+- `404 Not Found`: Token 不存在
+- `500 Internal Server Error`: 服务器内部错误
+
+---
+
+### 6. 删除账户
+
+**端点**: `DELETE /auth/:token/account`
+
+#### 路径参数
+- `token`: 目标 Token
+
+#### 请求示例
+```http
+DELETE https://airdrop-blush-five.vercel.app/auth/sk-11478501-b0c8-4c0e-8e0c-f176c7778b70/account
+Content-Type: application/json
+
+{
+  "account": "user1"
+}
+```
+
+#### 响应示例
+```json
+{
+  "success": true,
+  "message": "Account deleted successfully",
+  "data": {
+    "token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "deleted_account": "user1",
+    "remaining_acounts": ["user2", "new_user"],
+    "total_accounts": 2,
+    "updated_at": 1756828500
+  }
+}
+```
+
+#### 状态码
+- `200 OK`: 成功删除账户
+- `400 Bad Request`: 请求参数无效
+- `404 Not Found`: Token 或账户不存在
+- `500 Internal Server Error`: 服务器内部错误
+
+---
+
 ## 💻 代码示例
 
 ### JavaScript (fetch)
@@ -160,6 +290,38 @@ async function addAccountToToken(token, account) {
   return await response.json();
 }
 
+// 验证账户是否存在
+async function verifyAccountInToken(token, account) {
+  const response = await fetch(`${API_BASE}/auth/${token}/verify`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ account })
+  });
+  return await response.json();
+}
+
+// 删除 Token
+async function deleteToken(token) {
+  const response = await fetch(`${API_BASE}/auth/${token}`, {
+    method: 'DELETE'
+  });
+  return await response.json();
+}
+
+// 删除账户
+async function deleteAccountFromToken(token, account) {
+  const response = await fetch(`${API_BASE}/auth/${token}/account`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ account })
+  });
+  return await response.json();
+}
+
 // 使用示例
 async function example() {
   try {
@@ -171,7 +333,15 @@ async function example() {
     const result = await addAccountToToken(newToken.data.token, 'extra_user');
     console.log('添加结果:', result);
     
-    // 3. 查看所有 tokens
+    // 3. 验证账户是否存在
+    const verification = await verifyAccountInToken(newToken.data.token, 'demo_user');
+    console.log('验证结果:', verification.data.exists); // true
+    
+    // 4. 验证不存在的账户
+    const verification2 = await verifyAccountInToken(newToken.data.token, 'nonexistent');
+    console.log('不存在的账户:', verification2.data.exists); // false
+    
+    // 5. 查看所有 tokens
     const allTokens = await getAllTokens();
     console.log('所有 Tokens:', allTokens);
   } catch (error) {
@@ -214,6 +384,29 @@ def add_account_to_token(token, account):
     )
     return response.json()
 
+# 验证账户是否存在
+def verify_account_in_token(token, account):
+    response = requests.post(
+        f'{API_BASE}/auth/{token}/verify',
+        headers={'Content-Type': 'application/json'},
+        json={'account': account}
+    )
+    return response.json()
+
+# 删除 Token
+def delete_token(token):
+    response = requests.delete(f'{API_BASE}/auth/{token}')
+    return response.json()
+
+# 删除账户
+def delete_account_from_token(token, account):
+    response = requests.delete(
+        f'{API_BASE}/auth/{token}/account',
+        headers={'Content-Type': 'application/json'},
+        json={'account': account}
+    )
+    return response.json()
+
 # 使用示例
 def example():
     try:
@@ -225,7 +418,15 @@ def example():
         result = add_account_to_token(new_token['data']['token'], 'extra_user')
         print(f"添加结果: {result}")
         
-        # 3. 查看所有 tokens
+        # 3. 验证账户是否存在
+        verification = verify_account_in_token(new_token['data']['token'], 'demo_user')
+        print(f"验证结果: {verification['data']['exists']}")  # True
+        
+        # 4. 验证不存在的账户
+        verification2 = verify_account_in_token(new_token['data']['token'], 'nonexistent')
+        print(f"不存在的账户: {verification2['data']['exists']}")  # False
+        
+        # 5. 查看所有 tokens
         all_tokens = get_all_tokens()
         print(f"所有 Tokens: {json.dumps(all_tokens, indent=2)}")
         
@@ -297,6 +498,14 @@ Method: POST
 URL: https://airdrop-blush-five.vercel.app/auth/{token}/account
 Headers: Content-Type: application/json
 Body: {"account": "new_user"}
+```
+
+**4. 验证账户是否存在**
+```
+Method: POST
+URL: https://airdrop-blush-five.vercel.app/auth/{token}/verify
+Headers: Content-Type: application/json
+Body: {"account": "user1"}
 ```
 
 ---

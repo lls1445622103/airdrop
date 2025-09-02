@@ -7,7 +7,10 @@
 - 🚀 创建 Token (`POST /auth`)
 - 📋 获取所有 Token (`GET /auth`)
 - 👥 添加账户到 Token (`POST /auth/:token/account`)
-- 🔒 账户重复检测
+- ✅ 验证账户是否存在 (`POST /auth/:token/verify`)
+- 🗑️ 删除 Token (`DELETE /auth/:token`)
+- ❌ 删除账户 (`DELETE /auth/:token/account`)
+- 🔒 账户重复检测和数量限制 (最大100个)
 - ⚡ 支持 Vercel 无服务器部署
 
 ## API 端点
@@ -82,6 +85,73 @@ Content-Type: application/json
     "account_added": "new_user",
     "acounts": ["user1", "user2", "new_user"],
     "updated_at": 1756828269
+  }
+}
+```
+
+### 4. 验证账户是否存在
+```http
+POST https://airdrop-blush-five.vercel.app/auth/sk-11478501-b0c8-4c0e-8e0c-f176c7778b70/verify
+Content-Type: application/json
+
+{
+  "account": "user1"
+}
+```
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "message": "Verification completed",
+  "data": {
+    "token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "account": "user1",
+    "exists": true,
+    "total_accounts": 3
+  }
+}
+```
+
+### 5. 删除 Token
+```http
+DELETE https://airdrop-blush-five.vercel.app/auth/sk-11478501-b0c8-4c0e-8e0c-f176c7778b70
+```
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "message": "Token deleted successfully",
+  "data": {
+    "deleted_token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "deleted_accounts": ["user1", "user2", "new_user"],
+    "remaining_tokens": 2
+  }
+}
+```
+
+### 6. 删除账户
+```http
+DELETE https://airdrop-blush-five.vercel.app/auth/sk-11478501-b0c8-4c0e-8e0c-f176c7778b70/account
+Content-Type: application/json
+
+{
+  "account": "user1"
+}
+```
+
+**响应示例**:
+```json
+{
+  "success": true,
+  "message": "Account deleted successfully",
+  "data": {
+    "token": "sk-11478501-b0c8-4c0e-8e0c-f176c7778b70",
+    "deleted_account": "user1",
+    "remaining_acounts": ["user2", "new_user"],
+    "total_accounts": 2,
+    "updated_at": 1756828500
   }
 }
 ```
