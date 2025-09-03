@@ -12,6 +12,7 @@
 - ❌ 删除账户 (`DELETE /auth/:token/account`)
 - 🔒 账户重复检测和数量限制 (最大100个)
 - ⚡ 支持 Vercel 无服务器部署
+- 🌐 集成 Vercel Edge Config 配置管理
 
 ## API 端点
 
@@ -156,6 +157,76 @@ Content-Type: application/json
 }
 ```
 
+### 7. 获取 Edge Config 配置 (演示功能)
+```http
+GET https://airdrop-blush-five.vercel.app/welcome
+```
+
+**Vercel 生产环境响应示例**:
+```json
+{
+  "success": true,
+  "message": "Edge Config data retrieved successfully",
+  "data": {
+    "greeting": "Hello from Edge Config!",
+    "timestamp": 1756828600,
+    "source": "Edge Config"
+  }
+}
+```
+
+**本地开发环境响应示例**:
+```json
+{
+  "success": true,
+  "message": "Local development mode - using mock data",
+  "data": {
+    "greeting": "Hello from local development!",
+    "timestamp": 1756828600,
+    "source": "Local mock data"
+  }
+}
+```
+
+### 8. 获取多个配置项
+```http
+GET https://airdrop-blush-five.vercel.app/config
+```
+
+**Vercel 生产环境响应示例**:
+```json
+{
+  "success": true,
+  "message": "Edge Config data retrieved successfully",
+  "data": {
+    "greeting": "Hello World!",
+    "max_users": 100,
+    "enable_features": {},
+    "timestamp": 1756828650,
+    "source": "Edge Config"
+  }
+}
+```
+
+**本地开发环境响应示例**:
+```json
+{
+  "success": true,
+  "message": "Local development mode - using mock configuration",
+  "data": {
+    "greeting": "Hello from local config!",
+    "max_users": 50,
+    "enable_features": {
+      "beta_feature": true,
+      "new_ui": false,
+      "analytics": true
+    },
+    "timestamp": 1756828650,
+    "source": "Local mock config"
+  }
+}
+```
+
 ## 本地开发
 
 1. 安装依赖：
@@ -225,6 +296,7 @@ vercel --prod  # 部署到生产环境
 - **路由**：@koa/router
 - **Body 解析**：koa-bodyparser
 - **UUID 生成**：uuid
+- **配置管理**：@vercel/edge-config
 - **部署平台**：Vercel
 
 ## 项目结构

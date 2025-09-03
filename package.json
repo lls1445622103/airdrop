@@ -5,13 +5,19 @@
   "scripts": {
     "dev": "node app.js",
     "start": "node app.js",
-    "build": "echo 'No build step required'"
+    "build": "echo 'No build step required'",
+    "prod":""
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lls1445622103/airdrop.git"
   },
-  "keywords": ["koa", "api", "token", "auth"],
+  "keywords": [
+    "koa",
+    "api",
+    "token",
+    "auth"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -24,6 +30,7 @@
   },
   "dependencies": {
     "@koa/router": "^14.0.0",
+    "@vercel/edge-config": "^1.4.0",
     "koa": "^3.0.1",
     "koa-bodyparser": "^4.4.1",
     "uuid": "^11.1.0"

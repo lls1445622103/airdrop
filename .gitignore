@@ -39,3 +39,4 @@ keys/
 *.pem
 *.pub
 .vercel
+.env*.local
