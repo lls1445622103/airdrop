@@ -274,8 +274,30 @@ vercel
 
 5. **后续部署**：
 ```bash
+npm run prod   # 同步生产环境数据并部署
+# 或分步执行：
+npm run sync   # 仅同步数据
 vercel --prod  # 部署到生产环境
 ```
+
+### 数据同步功能
+
+为了保持本地开发环境与生产环境数据一致，项目提供了自动数据同步功能：
+
+```bash
+npm run sync   # 从生产环境同步数据到本地
+npm run prod   # 同步数据 + 部署到生产环境
+```
+
+**同步过程**：
+1. 🔄 从 `https://airdrop-blush-five.vercel.app/auth` 获取生产环境数据
+2. 💾 自动备份现有的 `db/auth.json` 文件
+3. 📝 将生产环境数据写入本地 `db/auth.json`
+4. 📊 显示同步数据摘要
+
+**数据备份**：
+- 每次同步前自动创建备份文件：`db/auth.json.backup.{timestamp}`
+- 确保数据安全，可随时恢复
 
 ### 环境差异
 
@@ -303,6 +325,13 @@ vercel --prod  # 部署到生产环境
 
 ```
 ├── app.js              # 主应用文件
+├── routes/             # 路由模块
+│   ├── auth.js         # 认证相关路由
+│   └── config.js       # 配置相关路由
+├── utils/              # 工具函数
+│   └── storage.js      # 数据存储工具
+├── scripts/            # 脚本文件
+│   └── sync-data.js    # 数据同步脚本
 ├── db/
 │   └── auth.json       # 数据存储文件（仅本地）
 ├── package.json        # 项目配置

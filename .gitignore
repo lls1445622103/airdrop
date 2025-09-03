@@ -40,3 +40,5 @@ keys/
 *.pub
 .vercel
 .env*.local
+db
+.json

@@ -6,7 +6,8 @@
     "dev": "node app.js",
     "start": "node app.js",
     "build": "echo 'No build step required'",
-    "prod":""
+    "sync": "node scripts/sync-data.js",
+    "prod": "node scripts/sync-data.js && vercel --prod"
   },
   "repository": {
     "type": "git",
