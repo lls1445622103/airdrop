@@ -52,6 +52,12 @@ router.post('/auth', async (ctx) => {
       token: newToken,
       created_at: currentTime,
       updated_at: currentTime,
+      // 新增字段并设置默认值
+      name: typeof ctx.request.body?.name === 'string' ? ctx.request.body.name : '',
+      desc: typeof ctx.request.body?.desc === 'string' ? ctx.request.body.desc : '',
+      endTime: typeof ctx.request.body?.endTime === 'number' ? ctx.request.body.endTime : null,
+      endTimeHistory: Array.isArray(ctx.request.body?.endTimeHistory) ? ctx.request.body.endTimeHistory : [],
+      acountsMax: Number.isInteger(ctx.request.body?.acountsMax) && ctx.request.body.acountsMax > 0 ? ctx.request.body.acountsMax : MAX_ACCOUNTS_PER_TOKEN,
       acounts: ctx.request.body?.acounts || []
     };
     
@@ -130,14 +136,15 @@ router.post('/auth/:token/account', async (ctx) => {
       return;
     }
     
-    // 检查账户数量限制
+    // 检查账户数量限制（优先使用 token 自身 acountsMax，默认回退到全局上限）
     const currentAccountCount = tokenData.acounts ? tokenData.acounts.length : 0;
-    if (currentAccountCount >= MAX_ACCOUNTS_PER_TOKEN) {
+    const accountsLimit = Number.isInteger(tokenData.acountsMax) && tokenData.acountsMax > 0 ? tokenData.acountsMax : MAX_ACCOUNTS_PER_TOKEN;
+    if (currentAccountCount >= accountsLimit) {
       ctx.status = 422;
       ctx.body = {
         success: false,
         error: 'Unprocessable Entity',
-        message: `Maximum number of accounts (${MAX_ACCOUNTS_PER_TOKEN}) reached for this token`
+        message: `Maximum number of accounts (${accountsLimit}) reached for this token`
       };
       return;
     }
@@ -391,3 +398,114 @@ router.delete('/auth/:token/account', async (ctx) => {
 });
 
 module.exports = router;
+
+// PUT /auth/:token - 编辑 token 的可变字段（name、desc、endTime、acountsMax）并维护 endTimeHistory
+router.put('/auth/:token', async (ctx) => {
+  try {
+    const { token } = ctx.params;
+    const { name, desc, endTime, acountsMax } = ctx.request.body || {};
+
+    // 读取现有数据
+    let existingDataArray = await readData();
+    if (!Array.isArray(existingDataArray)) {
+      existingDataArray = [];
+    }
+
+    // 查找指定的 token
+    const tokenIndex = existingDataArray.findIndex(item => item.token === token);
+    if (tokenIndex === -1) {
+      ctx.status = 404;
+      ctx.body = {
+        success: false,
+        error: 'Not Found',
+        message: 'Token not found'
+      };
+      return;
+    }
+
+    const tokenData = existingDataArray[tokenIndex];
+
+    // 准备更新对象，仅更新允许的字段
+    let updated = false;
+
+    if (typeof name === 'string') {
+      tokenData.name = name;
+      updated = true;
+    }
+
+    if (typeof desc === 'string') {
+      tokenData.desc = desc;
+      updated = true;
+    }
+
+    if (typeof endTime === 'number') {
+      // 维护 endTimeHistory：当 endTime 变化时，记录旧值
+      if (!Array.isArray(tokenData.endTimeHistory)) {
+        tokenData.endTimeHistory = [];
+      }
+      if (typeof tokenData.endTime === 'number' && tokenData.endTime !== endTime) {
+        tokenData.endTimeHistory.push(tokenData.endTime);
+      }
+      tokenData.endTime = endTime;
+      updated = true;
+    }
+
+    if (acountsMax !== undefined) {
+      // 校验 acountsMax：必须是正整数，且不能小于当前账户数量
+      const currentCount = Array.isArray(tokenData.acounts) ? tokenData.acounts.length : 0;
+      if (!Number.isInteger(acountsMax) || acountsMax <= 0) {
+        ctx.status = 400;
+        ctx.body = {
+          success: false,
+          error: 'Bad Request',
+          message: 'acountsMax must be a positive integer'
+        };
+        return;
+      }
+      if (acountsMax < currentCount) {
+        ctx.status = 422;
+        ctx.body = {
+          success: false,
+          error: 'Unprocessable Entity',
+          message: `acountsMax (${acountsMax}) cannot be less than current accounts count (${currentCount})`
+        };
+        return;
+      }
+      tokenData.acountsMax = acountsMax;
+      updated = true;
+    }
+
+    if (!updated) {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        error: 'Bad Request',
+        message: 'No valid fields provided to update'
+      };
+      return;
+    }
+
+    // 更新时间戳
+    tokenData.updated_at = Math.floor(Date.now() / 1000);
+
+    // 保存
+    existingDataArray[tokenIndex] = tokenData;
+    await writeData(existingDataArray);
+
+    ctx.status = 200;
+    ctx.type = 'application/json';
+    ctx.body = {
+      success: true,
+      message: 'Token updated successfully',
+      data: tokenData
+    };
+  } catch (error) {
+    console.error('Error updating token:', error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    };
+  }
+});
