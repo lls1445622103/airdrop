@@ -8,12 +8,40 @@ const router = new Router();
 router.get('/auth', async (ctx) => {
   try {
     // 读取数据
-    const authData = await readData();
-    
+    let authData = await readData();
+    if (!Array.isArray(authData)) {
+      authData = [];
+    }
+
+    // 查询参数：名称与是否截止
+    const { name, ended } = ctx.query || {};
+
+    let result = authData;
+
+    // 按名称模糊匹配（不区分大小写）
+    if (typeof name === 'string' && name.trim() !== '') {
+      const nameLower = name.trim().toLowerCase();
+      result = result.filter(item => typeof item.name === 'string' && item.name.toLowerCase().includes(nameLower));
+    }
+
+    // 按是否截止筛选：
+    // ended=true  -> endTime 存在且 <= 当前时间
+    // ended=false -> endTime 不存在 或 > 当前时间
+    if (typeof ended !== 'undefined') {
+      const normalized = String(ended).toLowerCase();
+      const wantEnded = normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'y' || normalized === 'on';
+      const now = Math.floor(Date.now() / 1000);
+      result = result.filter(item => {
+        const hasEndTime = typeof item.endTime === 'number';
+        const isEnded = hasEndTime && item.endTime <= now;
+        return wantEnded ? isEnded : !isEnded;
+      });
+    }
+
     // 设置响应头为 JSON
     ctx.type = 'application/json';
     // 返回 JSON 数据
-    ctx.body = authData;
+    ctx.body = result;
   } catch (error) {
     console.error('Error reading auth data:', error);
     ctx.status = 500;
@@ -58,7 +86,7 @@ router.post('/auth', async (ctx) => {
       endTime: typeof ctx.request.body?.endTime === 'number' ? ctx.request.body.endTime : null,
       endTimeHistory: Array.isArray(ctx.request.body?.endTimeHistory) ? ctx.request.body.endTimeHistory : [],
       acountsMax: Number.isInteger(ctx.request.body?.acountsMax) && ctx.request.body.acountsMax > 0 ? ctx.request.body.acountsMax : MAX_ACCOUNTS_PER_TOKEN,
-      acounts: ctx.request.body?.acounts || []
+      acounts:  []
     };
     
     // 添加到数组中

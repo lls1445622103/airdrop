@@ -20,7 +20,7 @@ const useFileStorage = process.env.NODE_ENV !== 'production';
 function readData() {
   if (useFileStorage) {
     try {
-      const authDataPath = path.join(__dirname, 'db', 'auth.json');
+      const authDataPath = path.join(__dirname, '..', 'db', 'auth.json');
       const fileContent = fs.readFileSync(authDataPath, 'utf8');
       return JSON.parse(fileContent);
     } catch (error) {
@@ -33,7 +33,7 @@ function readData() {
 
 function writeData(data) {
   if (useFileStorage) {
-    const authDataPath = path.join(__dirname, 'db', 'auth.json');
+    const authDataPath = path.join(__dirname, '..', 'db', 'auth.json');
     fs.writeFileSync(authDataPath, JSON.stringify(data, null, 2), 'utf8');
   } else {
     memoryStorage = [...data]; // 更新内存存储
