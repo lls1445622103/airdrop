@@ -64,7 +64,7 @@ async function main() {
 
   // 与原先一致的打包命令与排除规则
   const zipCmd = `cd "${projectRoot}" && \
-zip -r "airdrop-server.zip" . -x "node_modules/*" "*/node_modules/*" "package-lock.json" "airdrop-server.zip" "*.md" "*/*.md" "*/*/*.md" "*.zip" "*/*.zip" "*/*/*.zip"`;
+zip -r "airdrop-server.zip" . -x "node_modules/*" "*/node_modules/*" ".git/*" "*/.git/*" "*/*/.git/*" "package-lock.json" "airdrop-server.zip" "*.md" "*/*.md" "*/*/*.md" "*.zip" "*/*.zip" "*/*/*.zip"`;
 
   exec(zipCmd, (error, stdout, stderr) => {
     if (error) {
