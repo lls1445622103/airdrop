@@ -70,7 +70,7 @@ router.post('/auth', async (ctx) => {
       ctx.body = { 
         success: false,
         error: 'Token conflict',
-        message: 'Generated token already exists' 
+        message: '生成的Token已存在' 
       };
       return;
     }
@@ -100,7 +100,7 @@ router.post('/auth', async (ctx) => {
     ctx.type = 'application/json';
     ctx.body = {
       success: true,
-      message: 'Token created successfully',
+      message: 'Token创建成功',
       data: newData,
       total: existingDataArray.length
     };
@@ -116,7 +116,7 @@ router.post('/auth', async (ctx) => {
   }
 });
 
-// POST /auth/:token/account - 向指定 token 的 acounts 数组添加账户
+// POST /auth/:token/account - 向指定 token 的 acounts 数组添加环境账号
 router.post('/auth/:token/account', async (ctx) => {
   try {
     const { token } = ctx.params;
@@ -128,7 +128,7 @@ router.post('/auth/:token/account', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Bad Request',
-        message: 'Account parameter is required and must be a non-empty string'
+        message: 'account 参数必填且必须为非空字符串'
       };
       return;
     }
@@ -146,7 +146,7 @@ router.post('/auth/:token/account', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Not Found',
-        message: 'Token not found'
+        message: '未找到对应的Token'
       };
       return;
     }
@@ -159,12 +159,12 @@ router.post('/auth/:token/account', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Conflict',
-        message: 'Account already exists in the list'
+        message: '该环境账号已绑定，无需重复绑定'
       };
       return;
     }
     
-    // 检查账户数量限制（优先使用 token 自身 acountsMax，默认回退到全局上限）
+    // 检查环境账号数量限制（优先使用 token 自身 acountsMax，默认回退到全局上限）
     const currentAccountCount = tokenData.acounts ? tokenData.acounts.length : 0;
     const accountsLimit = Number.isInteger(tokenData.acountsMax) && tokenData.acountsMax > 0 ? tokenData.acountsMax : MAX_ACCOUNTS_PER_TOKEN;
     if (currentAccountCount >= accountsLimit) {
@@ -172,7 +172,7 @@ router.post('/auth/:token/account', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Unprocessable Entity',
-        message: `Maximum number of accounts (${accountsLimit}) reached for this token`
+        message: `该Token的环境账号数已达上限（${accountsLimit}）`
       };
       return;
     }
@@ -197,7 +197,7 @@ router.post('/auth/:token/account', async (ctx) => {
     ctx.type = 'application/json';
     ctx.body = {
       success: true,
-      message: 'Account added successfully',
+      message: '环境账号添加成功',
       data: {
         token: tokenData.token,
         account_added: account.trim(),
@@ -217,7 +217,7 @@ router.post('/auth/:token/account', async (ctx) => {
   }
 });
 
-// POST /auth/:token/verify - 验证指定 token 中是否存在某个账户
+// POST /auth/:token/verify - 验证指定 token 中是否存在某个环境账号
 router.post('/auth/:token/verify', async (ctx) => {
   try {
     const { token } = ctx.params;
@@ -229,7 +229,7 @@ router.post('/auth/:token/verify', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Bad Request',
-        message: 'Account parameter is required and must be a non-empty string'
+        message: 'account 参数必填且必须为非空字符串'
       };
       return;
     }
@@ -247,8 +247,23 @@ router.post('/auth/:token/verify', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Not Found',
-        message: 'Token not found',
+        message: '未找到对应的Token',
         exists: false
+      };
+      return;
+    }
+    
+    // 检查是否已到截止时间（endTime 为 Unix 秒级时间戳）
+    const now = Math.floor(Date.now() / 1000);
+    if (typeof tokenData.endTime === 'number' && tokenData.endTime <= now) {
+      ctx.status = 410;
+      ctx.body = {
+        success: false,
+        error: 'Gone',
+        message: 'Token已到截止时间',
+        exists: false,
+        endTime: tokenData.endTime,
+        now
       };
       return;
     }
@@ -261,12 +276,14 @@ router.post('/auth/:token/verify', async (ctx) => {
     ctx.type = 'application/json';
     ctx.body = {
       success: true,
-      message: 'Verification completed',
+      message: '验证完成',
       data: {
         token: tokenData.token,
         account: account.trim(),
         exists: accountExists,
-        total_accounts: tokenData.acounts ? tokenData.acounts.length : 0
+        total_accounts: tokenData.acounts ? tokenData.acounts.length : 0,
+        endTime:  tokenData.endTime,
+        ended: typeof tokenData.endTime === 'number' ? tokenData.endTime <= now : false
       }
     };
     
@@ -319,7 +336,7 @@ router.delete('/auth/:token', async (ctx) => {
     ctx.type = 'application/json';
     ctx.body = {
       success: true,
-      message: 'Token deleted successfully',
+      message: 'Token删除成功',
       data: {
         deleted_token: deletedTokenData.token,
         deleted_accounts: deletedTokenData.acounts || [],
@@ -338,7 +355,7 @@ router.delete('/auth/:token', async (ctx) => {
   }
 });
 
-// DELETE /auth/:token/account - 删除指定 token 中的特定账户
+// DELETE /auth/:token/account - 删除指定 token 中的特定环境账号
 router.delete('/auth/:token/account', async (ctx) => {
   try {
     const { token } = ctx.params;
@@ -350,7 +367,7 @@ router.delete('/auth/:token/account', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Bad Request',
-        message: 'Account parameter is required and must be a non-empty string'
+        message: 'account 参数必填且必须为非空字符串'
       };
       return;
     }
@@ -368,7 +385,7 @@ router.delete('/auth/:token/account', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Not Found',
-        message: 'Token not found'
+        message: '未找到对应的Token'
       };
       return;
     }
@@ -381,12 +398,12 @@ router.delete('/auth/:token/account', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Not Found',
-        message: 'Account not found in the token'
+        message: '该环境账号不在Token的列表中'
       };
       return;
     }
     
-    // 从数组中删除账户
+    // 从数组中删除环境账号
     const accountIndex = tokenData.acounts.indexOf(account.trim());
     tokenData.acounts.splice(accountIndex, 1);
     
@@ -404,7 +421,7 @@ router.delete('/auth/:token/account', async (ctx) => {
     ctx.type = 'application/json';
     ctx.body = {
       success: true,
-      message: 'Account deleted successfully',
+      message: '环境账号删除成功',
       data: {
         token: tokenData.token,
         deleted_account: account.trim(),
@@ -446,7 +463,7 @@ router.put('/auth/:token', async (ctx) => {
       ctx.body = {
         success: false,
         error: 'Not Found',
-        message: 'Token not found'
+        message: '没找到对应 Token'
       };
       return;
     }
@@ -479,7 +496,7 @@ router.put('/auth/:token', async (ctx) => {
     }
 
     if (acountsMax !== undefined) {
-      // 校验 acountsMax：必须是正整数，且不能小于当前账户数量
+      // 校验 acountsMax：必须是正整数，且不能小于当前环境账号数量
       const currentCount = Array.isArray(tokenData.acounts) ? tokenData.acounts.length : 0;
       if (!Number.isInteger(acountsMax) || acountsMax <= 0) {
         ctx.status = 400;
@@ -524,7 +541,7 @@ router.put('/auth/:token', async (ctx) => {
     ctx.type = 'application/json';
     ctx.body = {
       success: true,
-      message: 'Token updated successfully',
+      message: 'Token更新成功',
       data: tokenData
     };
   } catch (error) {
